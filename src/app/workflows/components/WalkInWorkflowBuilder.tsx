@@ -708,7 +708,7 @@ function InductionHubPalette({
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-medium text-text-primary truncate">{q.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[10px] text-text-muted">{q.questions} Qs</span>
                           <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-green-100 text-green-700">Pass: {q.passingScore}%</span>
                         </div>
@@ -849,13 +849,15 @@ function GroupDetailsPalette({
         className="w-full flex items-center justify-between px-4 py-2 hover:bg-teal-50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-teal-100 flex items-center justify-center">
-            <UsersRound size={10} className="text-teal-600" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-4 rounded bg-teal-100 flex items-center justify-center">
+              <UsersRound size={10} className="text-teal-600" />
+            </div>
+            <span className="text-[10px] font-bold tracking-widest text-teal-700 uppercase">Group Details</span>
+            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200">Group Only</span>
           </div>
-          <span className="text-[10px] font-bold tracking-widest text-teal-700 uppercase">Group Details</span>
-          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">Group Only</span>
+          {expanded ? <ChevronUp size={12} className="text-teal-500" /> : <ChevronDown size={12} className="text-teal-500" />}
         </div>
-        {expanded ? <ChevronUp size={12} className="text-teal-500" /> : <ChevronDown size={12} className="text-teal-500" />}
       </button>
 
       {expanded && (
@@ -866,7 +868,7 @@ function GroupDetailsPalette({
               draggable
               onDragStart={e => onDragStart(e, field)}
               onDragEnd={onDragEnd}
-              className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-teal-50 border border-transparent hover:border-teal-100 transition-all duration-150 group"
+              className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-teal-50 hover:border-teal-100 border border-transparent transition-all duration-150 group"
             >
               <div className="w-7 h-7 rounded-md bg-teal-50 flex items-center justify-center text-teal-600 shrink-0 mt-0.5 group-hover:bg-teal-100">
                 {field.icon}
@@ -1079,7 +1081,7 @@ function GroupPreviewModal({ onClose }: { onClose: () => void }) {
                   </tbody>
                 </table>
               </div>
-              <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border-2 border-dashed border-teal-300 text-teal-700 text-[12px] font-medium hover:bg-teal-50 transition-colors">
+              <button className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border-2 border-dashed border-blue-300 text-blue-700 text-[12px] font-medium hover:bg-blue-50 transition-colors">
                 <UserPlus size={14} /> Add Member Manually
               </button>
             </div>
@@ -1167,6 +1169,242 @@ function GroupQRBadgePanel() {
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── QR Code & Badge Generation Panel (Non-Group Visitor Types) ───────────────
+
+function QRBadgeNonGroupPanel() {
+  const [expanded, setExpanded] = useState(true);
+  const [qrEnabled, setQrEnabled] = useState(true);
+  const [qrMode, setQrMode] = useState<'individual' | 'master'>('individual');
+  const [badgeEnabled, setBadgeEnabled] = useState(true);
+  const [badgeMode, setBadgeMode] = useState<'individual' | 'group'>('individual');
+
+  const iconMap: Record<string, React.ReactNode> = {
+    'full-name': <User size={14} />, 'mobile-number': <Phone size={14} />,
+    'email-address': <Mail size={14} />, 'id-type-number': <CreditCard size={14} />,
+    'live-photo': <Camera size={14} />, 'company-org': <Users size={14} />,
+    'vehicle-number': <Hash size={14} />, 'host-name': <User size={14} />,
+    'purpose-of-visit': <FileText size={14} />, 'visitor-type': <Users size={14} />,
+    'health-declaration': <Shield size={14} />, 'nda-terms': <Clipboard size={14} />,
+    'expected-duration': <Calendar size={14} />, 'text-input': <Type size={14} />,
+    'dropdown': <List size={14} />, 'rating': <Star size={14} />,
+    'toggle-field': <ToggleLeft size={14} />,
+    'group-name': <UsersRound size={14} />, 'group-size': <Hash size={14} />,
+    'group-leader-name': <UserCog size={14} />, 'group-leader-mobile': <Phone size={14} />,
+    'group-leader-email': <Mail size={14} />, 'group-purpose': <FileText size={14} />,
+    'group-members': <Table2 size={14} />,
+    'induction-video-v1': <Play size={14} className="text-blue-500" />,
+    'induction-video-v2': <Play size={14} className="text-blue-500" />,
+    'induction-video-v3': <Play size={14} className="text-blue-500" />,
+    'induction-quiz-q1': <CheckSquare size={14} className="text-purple-500" />,
+    'induction-quiz-q2': <CheckSquare size={14} className="text-purple-500" />,
+    'induction-doc-d1': <FileText size={14} className="text-teal-500" />,
+    'induction-doc-d2': <FileText size={14} className="text-teal-500" />,
+    'induction-health-hs1': <Heart size={14} className="text-red-500" />,
+    'induction-health-hs2': <Heart size={14} className="text-red-500" />,
+    'qr-badge-generation': <QrCode size={14} className="text-orange-500" />,
+  };
+
+  return (
+    <div className="mx-3 mb-3 rounded-xl border border-orange-200 bg-orange-50/40 overflow-hidden">
+      {/* Section Header */}
+      <button
+        onClick={() => setExpanded(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 border-b border-orange-100 bg-orange-50 hover:bg-orange-100/60 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <QrCode size={14} className="text-orange-600" />
+          <span className="text-[12px] font-semibold text-orange-800">QR Code &amp; Badge Generation</span>
+        </div>
+        {expanded
+          ? <ChevronUp size={13} className="text-orange-500" />
+          : <ChevronDown size={13} className="text-orange-500" />
+        }
+      </button>
+
+      {expanded && (
+        <div className="p-4 space-y-4">
+
+          {/* ── QR Code Generation ── */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] font-semibold text-text-secondary flex items-center gap-1.5">
+                <QrCode size={12} className="text-orange-600" /> QR Code Generation
+              </p>
+              <button
+                type="button"
+                onClick={() => setQrEnabled(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${qrEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${qrEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {qrEnabled && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setQrMode('individual')}
+                  className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border-2 text-center transition-all ${qrMode === 'individual' ? 'border-orange-500 bg-orange-50' : 'border-border bg-white hover:border-orange-200'}`}
+                >
+                  <QrCode size={16} className={qrMode === 'individual' ? 'text-orange-600' : 'text-text-muted'} />
+                  <span className={`text-[10px] font-semibold leading-tight ${qrMode === 'individual' ? 'text-orange-700' : 'text-text-secondary'}`}>Individual QR</span>
+                  <span className="text-[9px] text-text-muted">One per visitor</span>
+                </button>
+                <button
+                  onClick={() => setQrMode('master')}
+                  className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border-2 text-center transition-all ${qrMode === 'master' ? 'border-orange-500 bg-orange-50' : 'border-border bg-white hover:border-orange-200'}`}
+                >
+                  <BadgeCheck size={16} className={qrMode === 'master' ? 'text-orange-600' : 'text-text-muted'} />
+                  <span className={`text-[10px] font-semibold leading-tight ${qrMode === 'master' ? 'text-orange-700' : 'text-text-secondary'}`}>Master QR</span>
+                  <span className="text-[9px] text-text-muted">One for visit</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Badge Printing ── */}
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] font-semibold text-text-secondary flex items-center gap-1.5">
+                <Printer size={12} className="text-orange-600" /> Badge Printing
+              </p>
+              <button
+                type="button"
+                onClick={() => setBadgeEnabled(v => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none ${badgeEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200 ${badgeEnabled ? 'translate-x-4' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {badgeEnabled && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBadgeMode('individual')}
+                  className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border-2 text-center transition-all ${badgeMode === 'individual' ? 'border-orange-500 bg-orange-50' : 'border-border bg-white hover:border-orange-200'}`}
+                >
+                  <Printer size={16} className={badgeMode === 'individual' ? 'text-orange-600' : 'text-text-muted'} />
+                  <span className={`text-[10px] font-semibold leading-tight ${badgeMode === 'individual' ? 'text-orange-700' : 'text-text-secondary'}`}>Individual</span>
+                  <span className="text-[9px] text-text-muted">One per visitor</span>
+                </button>
+                <button
+                  onClick={() => setBadgeMode('group')}
+                  className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border-2 text-center transition-all ${badgeMode === 'group' ? 'border-orange-500 bg-orange-50' : 'border-border bg-white hover:border-orange-200'}`}
+                >
+                  <BadgeCheck size={16} className={badgeMode === 'group' ? 'text-orange-600' : 'text-text-muted'} />
+                  <span className={`text-[10px] font-semibold leading-tight ${badgeMode === 'group' ? 'text-orange-700' : 'text-text-secondary'}`}>Group Badge</span>
+                  <span className="text-[9px] text-text-muted">One for visit</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Badge Preview ── */}
+          {(qrEnabled || badgeEnabled) && (
+            <div>
+              <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wide mb-2">Badge Preview</p>
+              <div className="rounded-lg border border-orange-200 bg-white p-3 shadow-sm">
+                <div className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-md bg-orange-100 flex items-center justify-center shrink-0">
+                    <Users size={14} className="text-orange-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-text-primary truncate">John Doe</p>
+                    <p className="text-[10px] text-text-muted truncate">Host: Jane Smith</p>
+                    <p className="text-[10px] text-text-muted truncate">Valid: Today, 9 AM – 6 PM</p>
+                    <p className="text-[9px] text-orange-600 font-semibold mt-0.5 truncate">Acme Corp</p>
+                  </div>
+                  {qrEnabled && (
+                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center shrink-0 border border-border">
+                      <QrCode size={18} className="text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+                  <span className="text-[9px] text-text-muted">
+                    {qrMode === 'individual' ? 'Individual QR' : 'Master QR'} · {badgeMode === 'individual' ? 'Individual Badge' : 'Group Badge'}
+                  </span>
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">Preview</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-orange-100/60 rounded-lg">
+            <CheckCircle size={11} className="text-orange-600 shrink-0" />
+            <p className="text-[10px] text-orange-700">
+              {qrEnabled && badgeEnabled
+                ? `${qrMode === 'individual' ? 'Individual QRs' : 'Master QR'} + ${badgeMode === 'individual' ? 'individual badges' : 'group badge'} generated on check-in.`
+                : qrEnabled
+                  ? `${qrMode === 'individual' ? 'Individual QRs' : 'Master QR'} generated on check-in.`
+                  : badgeEnabled
+                    ? `${badgeMode === 'individual' ? 'Individual badges' : 'Group badge'} printed on check-in.`
+                    : 'QR & Badge generation disabled.'
+              }
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Output / Delivery Palette Section (Non-Group) ────────────────────────────
+
+function OutputDeliveryPaletteWalkIn({
+  onDragStart,
+  onDragEnd,
+}: {
+  onDragStart: (e: React.DragEvent, field: PaletteField) => void;
+  onDragEnd: () => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  const qrBadgeField: PaletteField = {
+    id: 'qr-badge-generation',
+    label: 'QR Code & Badge Generation',
+    description: 'Generate QR codes and print visitor badges',
+    icon: <QrCode size={15} className="text-orange-600" />,
+    category: 'output',
+  };
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => setExpanded(o => !o)}
+        className="w-full flex items-center justify-between px-4 py-2 hover:bg-orange-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded bg-orange-100 flex items-center justify-center">
+            <QrCode size={10} className="text-orange-600" />
+          </div>
+          <span className="text-[10px] font-bold tracking-widest text-orange-700 uppercase">Output / Delivery</span>
+        </div>
+        {expanded ? <ChevronUp size={12} className="text-orange-500" /> : <ChevronDown size={12} className="text-orange-500" />}
+      </button>
+
+      {expanded && (
+        <div className="px-2 pb-2 space-y-0.5">
+          <div
+            draggable
+            onDragStart={e => onDragStart(e, qrBadgeField)}
+            onDragEnd={onDragEnd}
+            className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-orange-50 hover:border-orange-100 border border-transparent transition-all duration-150 group"
+          >
+            <div className="w-7 h-7 rounded-md bg-orange-50 flex items-center justify-center text-orange-600 shrink-0 mt-0.5 group-hover:bg-orange-100">
+              <QrCode size={15} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px] font-medium text-text-primary truncate">QR Code &amp; Badge Generation</span>
+              </div>
+              <p className="text-[10px] text-text-muted truncate mt-0.5">Generate QR codes and print visitor badges</p>
+            </div>
+            <GripVertical size={12} className="text-text-muted shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1353,6 +1591,7 @@ export default function WalkInWorkflowBuilder({ initialVisitorType = 'General Vi
       'induction-doc-d2': <FileText size={14} className="text-teal-500" />,
       'induction-health-hs1': <Heart size={14} className="text-red-500" />,
       'induction-health-hs2': <Heart size={14} className="text-red-500" />,
+      'qr-badge-generation': <QrCode size={14} className="text-orange-500" />,
     };
 
     if (draggingPaletteField) {
@@ -1441,7 +1680,7 @@ export default function WalkInWorkflowBuilder({ initialVisitorType = 'General Vi
             )}
             <Settings size={14} className="text-text-muted cursor-pointer hover:text-text-secondary" />
           </div>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-50 text-orange-700 border border-orange-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-700 border border-orange-200">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
             DRAFT
           </span>
@@ -1563,6 +1802,14 @@ export default function WalkInWorkflowBuilder({ initialVisitorType = 'General Vi
               onDragStart={(e, field) => handlePaletteDragStart(e, field)}
               onDragEnd={handlePaletteDragEnd}
             />
+
+            {/* ── Output / Delivery Section — only for non-Group Visit ── */}
+            {!isGroupVisit && (
+              <OutputDeliveryPaletteWalkIn
+                onDragStart={(e, field) => handlePaletteDragStart(e, field)}
+                onDragEnd={handlePaletteDragEnd}
+              />
+            )}
 
             {filteredCategories.filter(cat => cat.id === 'custom').map(cat => (
               <div key={cat.id} className="mb-1">
@@ -1968,8 +2215,9 @@ export default function WalkInWorkflowBuilder({ initialVisitorType = 'General Vi
             </div>
           )}
 
-          {/* QR & Badge Panel — only for Group Visit, shown at bottom of right panel when no field selected */}
+          {/* QR & Badge Panel — Group Visit uses GroupQRBadgePanel, others use QRBadgeNonGroupPanel */}
           {isGroupVisit && !selectedField && <GroupQRBadgePanel />}
+          {!isGroupVisit && !selectedField && <QRBadgeNonGroupPanel />}
         </div>
       </div>
 
